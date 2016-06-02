@@ -88,7 +88,7 @@ static const struct backlight_ops bl_ops = {
 	.update_status		= tlc59108_bl_update_status,
 };
 
-static int __devinit tlc59108_probe(struct i2c_client *c, const struct i2c_device_id *id)
+static int tlc59108_probe(struct i2c_client *c, const struct i2c_device_id *id)
 {
 	struct backlight_properties props;
 	struct tlc59108_bl *data = kzalloc(sizeof(struct tlc59108_bl),
