@@ -223,7 +223,7 @@ static int i2c_mux_gpio_probe(struct platform_device *pdev)
 			continue;
 
 		gpio_desc = gpio_to_desc(gpio_base + mux->data.gpios[i]);
-		gpio_dev = &gpio_desc->gdev->dev;
+		gpio_dev = gpio_desc->chip->dev;
 		muxc->mux_locked = i2c_root_adapter(gpio_dev) == root;
 	}
 
