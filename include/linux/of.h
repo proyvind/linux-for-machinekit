@@ -1046,7 +1046,7 @@ struct device_node *of_changeset_create_device_nodev(
 __printf(3, 4) struct device_node *of_changeset_create_device_node(
 	struct of_changeset *ocs, struct device_node *parent,
 	const char *fmt, ...);
-static inline int of_changeset_add_property_copy(struct of_changeset *ocs,
+int of_changeset_add_property_copy(struct of_changeset *ocs,
 	struct device_node *np, const char *name,
 	const void *value, int length);
 int of_changeset_add_property_string(struct of_changeset *ocs,
