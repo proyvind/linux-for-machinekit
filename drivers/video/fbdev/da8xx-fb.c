@@ -255,6 +255,21 @@ static struct fb_videomode known_lcd_panels[] = {
 		.vsync_len      = 3,
 		.sync           = 0,
 	},
+	/* INNOLUX HJ070NA13A*/
+	[4] = {
+		.name 		= "HJ070NA13A",
+		.xres 		= 1024,
+		.yres		= 600,
+		.pixclock       = KHZ2PICOS(5120),
+		.right_margin	= 160,
+		.left_margin	= 140,
+		.hsync_len	= 20,
+		.lower_margin	= 12,
+		.upper_margin	= 20,
+		.vsync_len	= 3,
+		.sync		= 0,
+		.flag		= 0,
+	},
 };
 
 static bool da8xx_fb_is_raster_enabled(void)
