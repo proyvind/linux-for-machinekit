@@ -421,7 +421,7 @@ static int _regmap_read(struct regmap *map, unsigned int reg,
 			unsigned int *val)
 {
 	int ret;
-
+    
 	if (!map->format.parse_val)
 		return -EINVAL;
 

@@ -24,6 +24,9 @@
 
 #include <asm/hardware/asp.h>
 #include <mach/edma.h>
+#ifdef CONFIG_MACH_AM335XEVM
+#include <mach/board-am335xevm.h>
+#endif
 
 #include "davinci-pcm.h"
 #include "davinci-i2s.h"
@@ -38,7 +41,7 @@ static int evm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	int ret = 0;
-	unsigned sysclk;
+	unsigned sysclk = 12000000;
 
 	/* ASP1 on DM355 EVM is clocked by an external oscillator */
 	if (machine_is_davinci_dm355_evm() || machine_is_davinci_dm6467_evm() ||
@@ -57,7 +60,12 @@ static int evm_hw_params(struct snd_pcm_substream *substream,
 		sysclk = 24576000;
 	/* On AM335X, CODEC gets MCLK from external Xtal (12MHz). */
 	else if (machine_is_am335xevm())
-		sysclk = 12000000;
+#ifdef CONFIG_MACH_AM335XEVM
+		if (am335x_evm_get_id() == EVM_SK)
+			sysclk = 24000000;
+		else
+#endif
+			sysclk = 12000000;
 
 	else
 		return -EINVAL;
@@ -89,15 +97,94 @@ static int evm_spdif_hw_params(struct snd_pcm_substream *substream,
 	/* set cpu DAI configuration */
 	return snd_soc_dai_set_fmt(cpu_dai, AUDIO_FORMAT);
 }
+static int am335xevm_wl1271bt_pcm_hw_params(struct snd_pcm_substream *substream,
+				struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	int ret;
+	unsigned sysclk;
 
+	/* Set cpu DAI configuration for WL1271 Bluetooth codec */
+	ret = snd_soc_dai_set_fmt(cpu_dai,
+			SND_SOC_DAIFMT_DSP_B |
+			SND_SOC_DAIFMT_NB_NF |
+			SND_SOC_DAIFMT_CBS_CFS);
+	if (ret < 0) {
+		printk(KERN_ERR "Can't set dai  configuration for "\
+				"WL1271 Bluetooth codec\n");
+		return ret;
+	}
+
+	/* set the codec system clock */
+	ret = snd_soc_dai_set_sysclk(cpu_dai, DAVINCI_CLK_AUX, sysclk, SND_SOC_CLOCK_OUT);
+	if (ret < 0) {
+		printk(KERN_ERR "Can't set sysclk  configuration \n");
+		return ret;
+	}
+
+	/* set the codec system clock */
+	ret = snd_soc_dai_set_clkdiv(cpu_dai, 0,94);
+	if (ret < 0) {
+		printk(KERN_ERR "Can't set sysclk  divider configuration \n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int am335xevm_hdmi_pcm_hw_params(struct snd_pcm_substream *substream,
+				struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	int ret;
+	unsigned sysclk;
+
+	/* Set cpu DAI configuration for AM335X HDMI codec */
+	ret = snd_soc_dai_set_fmt(cpu_dai,
+			SND_SOC_DAIFMT_DSP_B |
+			SND_SOC_DAIFMT_NB_NF |
+			SND_SOC_DAIFMT_CBS_CFS);
+	if (ret < 0) {
+		printk(KERN_ERR "Can't set dai  configuration for "\
+				"AM335X HDMI codec\n");
+		return ret;
+	}
+
+	/* set the codec system clock */
+	ret = snd_soc_dai_set_sysclk(cpu_dai, DAVINCI_CLK_AHCLKX, sysclk, SND_SOC_CLOCK_OUT);
+	if (ret < 0) {
+		printk(KERN_ERR "Can't set sysclk  configuration \n");
+		return ret;
+	}
+
+	/* set the codec system clock */
+	ret = snd_soc_dai_set_clkdiv(cpu_dai, 1,17);
+	if (ret < 0) {
+		printk(KERN_ERR "Can't set sysclk  divider configuration \n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static struct snd_soc_ops am335xevm_wl1271bt_pcm_ops = {
+	.hw_params = am335xevm_wl1271bt_pcm_hw_params,
+};
 static struct snd_soc_ops evm_ops = {
-	.hw_params = evm_hw_params,
+		.hw_params = evm_hw_params,
 };
 
 static struct snd_soc_ops evm_spdif_ops = {
-	.hw_params = evm_spdif_hw_params,
+		.hw_params = evm_spdif_hw_params,
 };
 
+static struct snd_soc_ops am335xevm_hdmi_pcm_ops = {
+	.hw_params = am335xevm_hdmi_pcm_hw_params,
+};
 /* davinci-evm machine dapm widgets */
 static const struct snd_soc_dapm_widget aic3x_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone Jack", NULL),
@@ -244,9 +331,33 @@ static struct snd_soc_dai_link da850_evm_dai = {
 static struct snd_soc_dai_link am335x_evm_dai = {
 	.name = "TLV320AIC3X",
 	.stream_name = "AIC3X",
-	.cpu_dai_name = "davinci-mcasp.1",
+	.cpu_dai_name = "davinci-mcasp.0",
 	.codec_dai_name = "tlv320aic3x-hifi",
 	.codec_name = "tlv320aic3x-codec.2-001b",
+	.platform_name = "davinci-pcm-audio",
+	.init = evm_aic3x_init,
+	.ops = &evm_ops,
+};
+
+static struct snd_soc_dai_link am335x_bone_dai[] = {
+	{
+		.name = "AM335X_HDMI",
+		.stream_name = "HDMI",
+		.cpu_dai_name = "davinci-mcasp.0",
+		.codec_dai_name = "am335x-hdmi-hifi",
+		.platform_name = "davinci-pcm-audio",
+		.codec_name = "hdmi-audio-codec",
+		.ops = &am335xevm_hdmi_pcm_ops,
+	},
+};
+
+
+static struct snd_soc_dai_link am335x_evm_sk_dai = {
+	.name = "TLV320AIC3X",
+	.stream_name = "AIC3X",
+	.cpu_dai_name = "davinci-mcasp.1",
+	.codec_dai_name = "tlv320aic3x-hifi",
+	.codec_name = "tlv320aic3x-codec.1-001b",
 	.platform_name = "davinci-pcm-audio",
 	.init = evm_aic3x_init,
 	.ops = &evm_ops,
@@ -298,6 +409,18 @@ static struct snd_soc_card am335x_snd_soc_card = {
 	.num_links = 1,
 };
 
+static struct snd_soc_card am335x_bone_snd_soc_card = {
+	.name = "AM335X BONE",
+	.dai_link = am335x_bone_dai,
+	.num_links =ARRAY_SIZE(am335x_bone_dai),
+};
+
+static struct snd_soc_card am335x_evm_sk_snd_soc_card = {
+	.name = "AM335X EVM",
+	.dai_link = &am335x_evm_sk_dai,
+	.num_links = 1,
+};
+
 static struct platform_device *evm_snd_device;
 
 static int __init evm_init(void)
@@ -326,6 +449,14 @@ static int __init evm_init(void)
 		index = 0;
 	} else if (machine_is_am335xevm()) {
 		evm_snd_dev_data = &am335x_snd_soc_card;
+/*
+#ifdef CONFIG_MACH_AM335XEVM
+		if (am335x_evm_get_id() == EVM_SK)
+			evm_snd_dev_data = &am335x_evm_sk_snd_soc_card;
+		else if (am335x_evm_get_id() == BEAGLE_BONE_BLACK)
+			evm_snd_dev_data = &am335x_bone_snd_soc_card;
+#endif
+*/
 		index = 0;
 	} else
 		return -EINVAL;

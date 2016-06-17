@@ -402,19 +402,27 @@ EXPORT_SYMBOL(pwm_set_polarity);
 
 int pwm_start(struct pwm_device *p)
 {
+    int ret;
 	struct pwm_config c = {
 		.config_mask = BIT(PWM_CONFIG_START),
 	};
-	return pwm_config(p, &c);
+
+    ret = pwm_config(p, &c);
+	test_and_set_bit(FLAG_RUNNING, &p->flags);
+	return ret;
 }
 EXPORT_SYMBOL(pwm_start);
 
 int pwm_stop(struct pwm_device *p)
 {
+    int ret;
 	struct pwm_config c = {
 		.config_mask = BIT(PWM_CONFIG_STOP),
 	};
-	return pwm_config(p, &c);
+
+    ret = pwm_config(p, &c);
+	clear_bit(FLAG_RUNNING, &p->flags);
+	return ret;
 }
 EXPORT_SYMBOL(pwm_stop);
 
@@ -817,7 +825,7 @@ int pwm_unregister(struct pwm_device *p)
 	device_unregister(p->dev);
 	p->flags = 0;
 
-done:
+done: 
 	mutex_unlock(&device_list_mutex);
 
 	return ret;

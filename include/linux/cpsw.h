@@ -13,7 +13,8 @@ struct cpsw_slave_data {
 	u32		sliver_reg_ofs;
 	const char	*phy_id;
 	int		phy_if;
-	u8	mac_addr[ETH_ALEN];
+	u8		mac_addr[ETH_ALEN];
+	u32		dual_emac_reserved_vlan;
 };
 
 struct cpsw_platform_data {
@@ -23,6 +24,7 @@ struct cpsw_platform_data {
 
 	int	slaves;		/* number of slave cpgmac ports */
 	struct cpsw_slave_data	*slave_data;
+	int	ethtool_slave;	/* Holds which slave attaches to ethtool */
 
 	u32	ale_reg_ofs;	/* address lookup engine reg offset */
 	int	ale_entries;	/* ale table size */
@@ -34,6 +36,11 @@ struct cpsw_platform_data {
 	u32	bd_ram_ofs;   /* embedded buffer descriptor RAM offset*/
 	u32	bd_ram_size;  /*buffer descriptor ram size */
 	u32	hw_ram_addr; /*if the HW address for BD RAM is different */
+
+	u32	cpts_reg_ofs;		/* cpts registers */
+	u32	cpts_active_slave;	/* time stamping slave */
+	u32	cpts_clock_mult; /* convert input clock ticks to nanoseconds */
+	u32	cpts_clock_shift; /* convert input clock ticks to nanoseconds */
 
 	u8	mac_addr[ETH_ALEN];
 
@@ -49,6 +56,7 @@ struct cpsw_platform_data {
 
 	bool	no_bd_ram; /* no embedded BD ram*/
 	u8	version;
+	u32	default_vlan; /* Default VLAN for Untagged packet handling*/
 };
 
 #endif /* __CPSW_H__ */

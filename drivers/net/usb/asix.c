@@ -376,7 +376,7 @@ static int asix_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 
 		skb_pull(skb, (size + 1) & 0xfffe);
 
-		if (skb->len < sizeof(header))
+		if (skb->len == 0)
 			break;
 
 		head = (u8 *) skb->data;

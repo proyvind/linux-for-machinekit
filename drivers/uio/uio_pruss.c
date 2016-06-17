@@ -87,7 +87,7 @@ static irqreturn_t pruss_handler(int irq, struct uio_info *info)
 	void __iomem *intren_reg = base + PINTC_HIER;
 	void __iomem *intrdis_reg = base + PINTC_HIDISR;
 	void __iomem *intrstat_reg = base + PINTC_HIPIR + (intr_bit << 2);
-
+    
 	val = ioread32(intren_reg);
 	/* Is interrupt enabled and active ? */
 	if (!(val & intr_mask) && (ioread32(intrstat_reg) & HIPIR_NOPEND))
@@ -129,7 +129,7 @@ static int __devinit pruss_probe(struct platform_device *dev)
 	struct resource *regs_prussio;
 	int ret = -ENODEV, cnt = 0, len;
 	struct uio_pruss_pdata *pdata = dev->dev.platform_data;
-
+    
 	gdev = kzalloc(sizeof(struct uio_pruss_dev), GFP_KERNEL);
 	if (!gdev)
 		return -ENOMEM;

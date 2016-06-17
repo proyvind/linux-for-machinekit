@@ -182,6 +182,14 @@
 #define AC_READ(ac, reg)	((ac)->bops->read((ac)->dev, reg))
 #define AC_WRITE(ac, reg, val)	((ac)->bops->write((ac)->dev, reg, val))
 
+#define SIGN_POS        1
+#define SIGN_NEG        -1
+
+static int x_sign = SIGN_POS;
+static int y_sign = SIGN_POS;
+static int z_sign = SIGN_POS;
+static int xy_swap = false;
+
 struct axis_triple {
 	int x;
 	int y;
@@ -258,15 +266,24 @@ static void adxl34x_service_ev_fifo(struct adxl34x *ac)
 {
 	struct adxl34x_platform_data *pdata = &ac->pdata;
 	struct axis_triple axis;
+	int x, y, z, tmp;
 
 	adxl34x_get_triple(ac, &axis);
 
-	input_event(ac->input, pdata->ev_type, pdata->ev_code_x,
-		    axis.x - ac->swcal.x);
-	input_event(ac->input, pdata->ev_type, pdata->ev_code_y,
-		    axis.y - ac->swcal.y);
-	input_event(ac->input, pdata->ev_type, pdata->ev_code_z,
-		    axis.z - ac->swcal.z);
+        x = x_sign * (axis.x - ac->swcal.x) * (-1);
+        y = y_sign * (axis.y - ac->swcal.y);
+        z = z_sign * (axis.z - ac->swcal.z) * (-1);
+
+        if (xy_swap)
+        {
+                tmp = x;
+                x = y;
+                y = tmp;
+        }
+
+        input_event(ac->input, pdata->ev_type, pdata->ev_code_x, x);
+        input_event(ac->input, pdata->ev_type, pdata->ev_code_y, y);
+        input_event(ac->input, pdata->ev_type, pdata->ev_code_z, z);
 }
 
 static void adxl34x_report_key_single(struct input_dev *input, int key)
@@ -394,6 +411,7 @@ static irqreturn_t adxl34x_irq(int irq, void *handle)
 		}
 	}
 
+	ac->input->sync = false;
 	input_sync(ac->input);
 
 	return IRQ_HANDLED;
@@ -601,6 +619,126 @@ static ssize_t adxl34x_autosleep_store(struct device *dev,
 static DEVICE_ATTR(autosleep, 0664,
 		   adxl34x_autosleep_show, adxl34x_autosleep_store);
 
+static ssize_t adxl34x_x_invert_show(struct device *dev,
+                                                        struct device_attribute *attr, char *buf)
+{
+        return sprintf(buf, "%u\n", (x_sign == SIGN_POS ? 0 : 1));
+}
+
+static ssize_t adxl34x_x_invert_store(struct device *dev,
+                                                        struct device_attribute *attr,
+                                                        const char *buf, size_t count)
+{
+        struct adxl34x *ac = dev_get_drvdata(dev);
+        unsigned long val;
+        int error;
+
+        error = strict_strtoul(buf, 10, &val);
+        if (error)
+                return error;
+
+        mutex_lock(&ac->mutex);
+
+        x_sign = (val ? SIGN_NEG : SIGN_POS);
+
+        mutex_unlock(&ac->mutex);
+
+        return count;
+}
+
+static DEVICE_ATTR(xinv, 0664,
+                        adxl34x_x_invert_show, adxl34x_x_invert_store);
+
+static ssize_t adxl34x_y_invert_show(struct device *dev,
+                                                        struct device_attribute *attr, char *buf)
+{
+        return sprintf(buf, "%u\n", (y_sign == SIGN_POS ? 0 : 1));
+}
+
+static ssize_t adxl34x_y_invert_store(struct device *dev,
+                                                        struct device_attribute *attr,
+                                                        const char *buf, size_t count)
+{
+        struct adxl34x *ac = dev_get_drvdata(dev);
+        unsigned long val;
+        int error;
+
+        error = strict_strtoul(buf, 10, &val);
+        if (error)
+                return error;
+
+        mutex_lock(&ac->mutex);
+
+        y_sign = (val ? SIGN_NEG : SIGN_POS);
+
+        mutex_unlock(&ac->mutex);
+
+        return count;
+}
+
+static DEVICE_ATTR(yinv, 0664,
+                        adxl34x_y_invert_show, adxl34x_y_invert_store);
+
+static ssize_t adxl34x_z_invert_show(struct device *dev,
+                                                        struct device_attribute *attr, char *buf)
+{
+        return sprintf(buf, "%u\n", (z_sign == SIGN_POS ? 0 : 1));
+}
+
+static ssize_t adxl34x_z_invert_store(struct device *dev,
+                                                        struct device_attribute *attr,
+                                                        const char *buf, size_t count)
+{
+        struct adxl34x *ac = dev_get_drvdata(dev);
+        unsigned long val;
+        int error;
+
+        error = strict_strtoul(buf, 10, &val);
+        if (error)
+                return error;
+
+        mutex_lock(&ac->mutex);
+
+        z_sign = (val ? SIGN_NEG : SIGN_POS);
+
+        mutex_unlock(&ac->mutex);
+
+        return count;
+}
+
+static DEVICE_ATTR(zinv, 0664,
+                        adxl34x_z_invert_show, adxl34x_z_invert_store);
+
+static ssize_t adxl34x_xy_swap_show(struct device *dev,
+                                                        struct device_attribute *attr, char *buf)
+{
+        return sprintf(buf, "%u\n", xy_swap);
+}
+
+static ssize_t adxl34x_xy_swap_store(struct device *dev,
+                                                        struct device_attribute *attr,
+                                                        const char *buf, size_t count)
+{
+        struct adxl34x *ac = dev_get_drvdata(dev);
+        unsigned long val;
+        int error;
+
+        error = strict_strtoul(buf, 10, &val);
+        if (error)
+                return error;
+
+        mutex_lock(&ac->mutex);
+
+        xy_swap = !!val;
+
+        mutex_unlock(&ac->mutex);
+
+        return count;
+}
+
+static DEVICE_ATTR(xyswap, 0664,
+                        adxl34x_xy_swap_show, adxl34x_xy_swap_store);
+
 static ssize_t adxl34x_position_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
@@ -649,6 +787,10 @@ static struct attribute *adxl34x_attributes[] = {
 	&dev_attr_rate.attr,
 	&dev_attr_autosleep.attr,
 	&dev_attr_position.attr,
+        &dev_attr_xinv.attr,
+        &dev_attr_yinv.attr,
+        &dev_attr_zinv.attr,
+        &dev_attr_xyswap.attr,
 #ifdef ADXL_DEBUG
 	&dev_attr_write.attr,
 #endif

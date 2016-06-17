@@ -23,6 +23,8 @@ source "drivers/gpu/drm/Kconfig"
 
 source "drivers/gpu/stub/Kconfig"
 
+source "drivers/gpu/ion/Kconfig"
+
 config VGASTATE
        tristate
        default n
@@ -32,6 +34,9 @@ config VIDEO_OUTPUT_CONTROL
 	help
 	  This framework adds support for low-level control of the video
 	  output switch.
+
+config HDMI
+	bool
 
 menuconfig FB
 	tristate "Support for frame buffer devices"
@@ -2240,7 +2245,7 @@ config FB_DA8XX
 
 config FB_DA8XX_CONSISTENT_DMA_SIZE
 	int "Consistent DMA memory size (MB)"
-	depends on (FB_DA8XX && MACH_AM335XEVM)
+	depends on (FB_DA8XX)
 	range 1 14
 	default 4
 	help
@@ -2425,6 +2430,8 @@ source "drivers/video/omap2/Kconfig"
 
 source "drivers/video/backlight/Kconfig"
 source "drivers/video/display/Kconfig"
+
+source "drivers/video/nxp/Kconfig"
 
 if VT
 	source "drivers/video/console/Kconfig"

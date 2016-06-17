@@ -15,7 +15,17 @@
 
 #include <linux/module.h>
 #include <linux/init.h>
+#include <linux/io.h>
+#include <linux/debugfs.h>
+#include <linux/slab.h>
+#include <linux/seq_file.h>
+#include <linux/uaccess.h>
+#include <linux/gpio.h>
+#include <linux/interrupt.h>
+#include <linux/suspend.h>
 
+#include "cm33xx.h"
+#include "control.h"
 #include "mux.h"
 
 #ifdef CONFIG_OMAP_MUX
@@ -28,7 +38,7 @@
 }
 
 /* AM33XX pin mux super set */
-static struct omap_mux __initdata am33xx_muxmodes[] = {
+static struct omap_mux am33xx_muxmodes[] = {
 	_AM33XX_MUXENTRY(GPMC_AD0, 0,
 		"gpmc_ad0", "mmc1_dat0", NULL, NULL,
 		NULL, NULL, NULL, "gpio1_0"),
@@ -55,7 +65,7 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 		NULL, NULL, NULL, "gpio1_7"),
 	_AM33XX_MUXENTRY(GPMC_AD8, 0,
 		"gpmc_ad8", "lcd_data16", "mmc1_dat0", "mmc2_dat4",
-		NULL, NULL, NULL, "gpio0_22"),
+		"ehrpwm2A", NULL, NULL, "gpio0_22"),
 	_AM33XX_MUXENTRY(GPMC_AD9, 0,
 		"gpmc_ad9", "lcd_data17", "mmc1_dat1", "mmc2_dat5",
 		"ehrpwm2B", NULL, NULL, "gpio0_23"),
@@ -85,10 +95,10 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 		NULL, NULL, NULL, "gpio1_17"),
 	_AM33XX_MUXENTRY(GPMC_A2, 0,
 		"gpmc_a2", "mii2_txd3", "rgmii2_td3", "mmc2_dat1",
-		NULL, NULL, NULL, "gpio1_18"),
+		NULL, NULL, "ehrpwm1A", "gpio1_18"),
 	_AM33XX_MUXENTRY(GPMC_A3, 0,
 		"gpmc_a3", "mii2_txd2", "rgmii2_td2", "mmc2_dat2",
-		NULL, NULL, NULL, "gpio1_19"),
+		NULL, NULL, "ehrpwm1B", "gpio1_19"),
 	_AM33XX_MUXENTRY(GPMC_A4, 0,
 		"gpmc_a4", "mii2_txd1", "rgmii2_td1", "rmii2_txd1",
 		"gpmc_a20", NULL, NULL, "gpio1_20"),
@@ -115,10 +125,10 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 		NULL, NULL, "mcasp0_axr1", "gpio1_27"),
 	_AM33XX_MUXENTRY(GPMC_WAIT0, 0,
 		"gpmc_wait0", "mii2_crs", NULL, "rmii2_crs_dv",
-		"mmc1_sdcd", NULL, NULL, "gpio0_30"),
+		"mmc1_sdcd", NULL, "uart4_rxd", "gpio0_30"),
 	_AM33XX_MUXENTRY(GPMC_WPN, 0,
 		"gpmc_wpn", "mii2_rxerr", NULL, "rmii2_rxerr",
-		"mmc2_sdcd", NULL, NULL, "gpio0_31"),
+		"mmc2_sdcd", NULL, "uart4_txd", "gpio0_31"),
 	_AM33XX_MUXENTRY(GPMC_BEN1, 0,
 		"gpmc_ben1", "mii2_col", NULL, "mmc2_dat3",
 		NULL, NULL, "mcasp0_aclkr", "gpio1_28"),
@@ -139,7 +149,7 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 		NULL, NULL, "mcasp0_fsr", "gpio2_1"),
 	_AM33XX_MUXENTRY(GPMC_ADVN_ALE, 0,
 		"gpmc_advn_ale", NULL, NULL, NULL,
-		NULL, NULL, NULL, "mmc1_sdcd"),
+		NULL, NULL, NULL, "gpio2_2"),
 	_AM33XX_MUXENTRY(GPMC_OEN_REN, 0,
 		"gpmc_oen_ren", NULL, NULL, NULL,
 		NULL, NULL, NULL, "gpio2_3"),
@@ -282,10 +292,10 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 		"mdio_clk", NULL, NULL, NULL,
 		"mmc0_sdwp", "mmc1_clk", "mmc2_clk", "gpio0_1"),
 	_AM33XX_MUXENTRY(SPI0_SCLK, 0,
-		"spi0_sclk", "uart2_rxd", "i2c2_sda", NULL,
+		"spi0_sclk", "uart2_rxd", "i2c2_sda", "ehrpwm0A",
 		NULL, NULL, NULL, "gpio0_2"),
 	_AM33XX_MUXENTRY(SPI0_D0, 0,
-		"spi0_d0", "uart2_txd", "i2c2_scl", NULL,
+		"spi0_d0", "uart2_txd", "i2c2_scl", "ehrpwm0B",
 		NULL, NULL, NULL, "gpio0_3"),
 	_AM33XX_MUXENTRY(SPI0_D1, 0,
 		"spi0_d1", "mmc1_sdwp", "i2c1_sda", NULL,
@@ -298,7 +308,7 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 		NULL, "mmc0_sdcd", NULL, "gpio0_6"),
 	_AM33XX_MUXENTRY(ECAP0_IN_PWM0_OUT, 0,
 		"ecap0_in_pwm0_out", "uart3_txd", "spi1_cs1", NULL,
-		"spi1_sclk", "mmc0_sdwp", NULL, "gpio0_7"),
+		"spi1_sclk", "mmc0_sdwp", "xdma_event_intr2", "gpio0_7"),
 	_AM33XX_MUXENTRY(UART0_CTSN, 0,
 		"uart0_ctsn", NULL, "d_can1_tx", "i2c1_sda",
 		"spi1_d0", NULL, NULL, "gpio1_8"),
@@ -324,10 +334,10 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 		"uart1_txd", "mmc2_sdwp", NULL, "i2c1_scl",
 		NULL, "pr1_uart0_txd_mux1", NULL, "gpio0_15"),
 	_AM33XX_MUXENTRY(I2C0_SDA, 0,
-		"i2c0_sda", NULL, NULL, NULL,
+		"i2c0_sda", NULL, NULL, "ecap2_in_pwm2_out",
 		NULL, NULL, NULL, "gpio3_5"),
 	_AM33XX_MUXENTRY(I2C0_SCL, 0,
-		"i2c0_scl", NULL, NULL, NULL,
+		"i2c0_scl", NULL, NULL, "ecap1_in_pwm1_out",
 		NULL, NULL, NULL, "gpio3_6"),
 	_AM33XX_MUXENTRY(MCASP0_ACLKX, 0,
 		"mcasp0_aclkx", NULL, NULL, "spi1_sclk",
@@ -340,7 +350,7 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 		"mmc2_sdcd", NULL, NULL, "gpio3_16"),
 	_AM33XX_MUXENTRY(MCASP0_AHCLKR, 0,
 		"mcasp0_ahclkr", NULL, "mcasp0_axr2", "spi1_cs0",
-		NULL, NULL, NULL, "gpio3_17"),
+		"ecap2_in_pwm2_out", NULL, NULL, "gpio3_17"),
 	_AM33XX_MUXENTRY(MCASP0_ACLKR, 0,
 		"mcasp0_aclkr", NULL, "mcasp0_axr2", "mcasp1_aclkx",
 		"mmc0_sdwp", NULL, NULL, "gpio3_18"),
@@ -354,61 +364,49 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 		"mcasp0_ahclkx", NULL, "mcasp0_axr3", "mcasp1_axr1",
 		NULL, NULL, NULL, "gpio3_21"),
 	_AM33XX_MUXENTRY(XDMA_EVENT_INTR0, 0,
-		"xdma_event_intr0", NULL, NULL, NULL,
+		"xdma_event_intr0", NULL, NULL, "clkout1",
 		"spi1_cs1", NULL, NULL, "gpio0_19"),
 	_AM33XX_MUXENTRY(XDMA_EVENT_INTR1, 0,
 		"xdma_event_intr1", NULL, NULL, "clkout2",
 		NULL, NULL, NULL, "gpio0_20"),
 	_AM33XX_MUXENTRY(WARMRSTN, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(PWRONRSTN, 0,
-		NULL, NULL, NULL, NULL,
+		"warmrstn", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(NMIN, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(XTALIN, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(XTALOUT, 0,
-		NULL, NULL, NULL, NULL,
+		"nmin", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(TMS, 0,
-		NULL, NULL, NULL, NULL,
+		"tms", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(TDI, 0,
-		NULL, NULL, NULL, NULL,
+		"tdi", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(TDO, 0,
-		NULL, NULL, NULL, NULL,
+		"tdo", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(TCK, 0,
-		NULL, NULL, NULL, NULL,
+		"tck", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(TRSTN, 0,
-		NULL, NULL, NULL, NULL,
+		"trstn", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(EMU0, 0,
-		NULL, NULL, NULL, NULL,
+		"emu0", NULL, NULL, NULL,
 		NULL, NULL, NULL, "gpio3_7"),
 	_AM33XX_MUXENTRY(EMU1, 0,
-		NULL, NULL, NULL, NULL,
+		"emu1", NULL, NULL, NULL,
 		NULL, NULL, NULL, "gpio3_8"),
-	_AM33XX_MUXENTRY(RTC_XTALIN, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(RTC_XTALOUT, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(RTC_PWRONRSTN, 0,
-		NULL, NULL, NULL, NULL,
+		"rtc_pwronrstn", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(PMIC_POWER_EN, 0,
-		NULL, NULL, NULL, NULL,
+		"pmic_power_en", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(EXT_WAKEUP, 0,
-		NULL, NULL, NULL, NULL,
+		"ext_wakeup", NULL, NULL, NULL,
+		NULL, NULL, NULL, NULL),
+	_AM33XX_MUXENTRY(RTC_KALDO_ENN, 0,
+		"rtc_kaldo_enn", NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL),
 	_AM33XX_MUXENTRY(USB0_DRVVBUS, 0,
 		"usb0_drvvbus", NULL, NULL, NULL,
@@ -416,180 +414,6 @@ static struct omap_mux __initdata am33xx_muxmodes[] = {
 	_AM33XX_MUXENTRY(USB1_DRVVBUS, 0,
 		"usb1_drvvbus", NULL, NULL, NULL,
 		NULL, NULL, NULL, "gpio3_13"),
-	_AM33XX_MUXENTRY(DDR_RESETN, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_CSN0, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_CKE, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_CK, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_CKN, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_CASN, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_RASN, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_WEN, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_BA0, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_BA1, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_BA2, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A0, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A1, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A2, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A3, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A4, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A5, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A6, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A7, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A8, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A9, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A10, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A11, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A12, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A13, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A14, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_A15, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_ODT, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D0, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D1, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D2, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D3, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D4, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D5, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D6, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D7, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D8, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D9, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D10, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D11, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D12, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D13, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D14, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_D15, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_DQM0, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_DQM1, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_DQS0, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_DQSN0, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_DQS1, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_DQSN1, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_VREF, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(DDR_VTP, 0,
-		NULL, NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(AIN0, 0,
-		"ain0", NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(AIN1, 0,
-		"ain1", NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(AIN2, 0,
-		"ain2", NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(AIN3, 0,
-		"ain3", NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(VREFP, 0,
-		"vrefp", NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
-	_AM33XX_MUXENTRY(VREFN, 0,
-		"vrefn", NULL, NULL, NULL,
-		NULL, NULL, NULL, NULL),
 	{ .reg_offset = OMAP_MUX_TERMINATOR },
 };
 
@@ -599,9 +423,638 @@ int __init am33xx_mux_init(struct omap_board_mux *board_subset)
 			AM33XX_CONTROL_PADCONF_MUX_SIZE, am33xx_muxmodes,
 			NULL, board_subset, NULL);
 }
+
+#ifdef CONFIG_SUSPEND
+struct am33xx_padconf_regs {
+	u16 offset;
+	u32 val;
+};
+
+static struct am33xx_padconf_regs am33xx_lp_padconf[] = {
+	{.offset = AM33XX_CONTROL_GMII_SEL_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A0_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A1_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A2_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A3_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A4_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A5_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A6_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A7_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A8_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A9_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A10_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_A11_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_WAIT0_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_WPN_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_GPMC_BEN1_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_COL_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_CRS_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_RXERR_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_TXEN_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_RXDV_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_TXD3_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_TXD2_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_TXD1_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_TXD0_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_TXCLK_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_RXCLK_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_RXD3_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_RXD2_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_RXD1_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_RXD0_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MII1_REFCLK_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MDIO_DATA_OFFSET},
+	{.offset = AM33XX_CONTROL_PADCONF_MDIO_CLK_OFFSET},
+};
+#endif /* CONFIG_SUSPEND */
+
+struct susp_io_pad_conf {
+	u32 enabled;
+	u32 val;
+};
+
+static u32 susp_io_pad_conf_enabled;
+static struct susp_io_pad_conf pad_array[MAX_IO_PADCONF];
+
+struct standby_gpio_pad_struct {
+	u32 enabled;
+	u32 gpio_request_success;
+	u32 pin_val;
+	u32 trigger;
+	u32 gpio_pin;
+	u32 curr_pin_mux;
+};
+
+static struct standby_gpio_pad_struct standby_gpio_array[MAX_IO_PADCONF];
+
+/*
+ * Expected input: 1/0
+ * Example: "echo 1 > enable_suspend_io_pad_conf" enables IO PAD Config
+ */
+static int susp_io_pad_enable_set(void *data, u64 val)
+{
+	u32 *enabled = data;
+
+	*enabled = val & 0x1;
+
+	return 0;
+}
+
+static int susp_io_pad_enable_get(void *data, u64 *val)
+{
+	u32 *enabled = data;
+
+	*val = *enabled;
+
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(susp_io_pad_enable_fops, susp_io_pad_enable_get,
+			susp_io_pad_enable_set, "%llx\n");
+
+static unsigned int am335x_pin_mux_addr_to_skip[] = {
+	0x9bc,
+	0x9c4, 0x9c8, 0x9cc,
+	0x9ec,
+	0x9f0, 0x9f4,
+	0xa08, 0xa0c,
+	0xa10, 0xa14, 0xa18,
+	0xa20, 0xa24, 0xa28, 0xa2c,
+	0xa30,
+};
+
+static int susp_io_pad_status_show(struct seq_file *s, void *unused)
+{
+	struct omap_mux *mux_arr = &am33xx_muxmodes[0];
+	u32 *enabled = s->private;
+	int i;
+
+	if (!*enabled) {
+		pr_err("%s: IO PAD Configuration is not enabled\n", __func__);
+		return 0;
+	}
+
+	for (i = 0; i < MAX_IO_PADCONF;) {
+		int off, j, addr_match = 0;
+
+		if (pad_array[i].enabled) {
+			int mode = pad_array[i].val & OMAP_MUX_MODE7;
+			seq_printf(s, "%s.%s (0x%08x = 0x%02x)\n",
+				mux_arr->muxnames[0], mux_arr->muxnames[mode],
+				(unsigned int)(AM33XX_CONTROL_PADCONF_MUX_PBASE
+				+ mux_arr->reg_offset),
+				pad_array[i].val);
+		}
+
+		i++;
+
+		/*
+		 * AM335x pin-mux register offset sequence is broken, meaning
+		 * there is no pin-mux setting at some offset and at some
+		 * offsets, the modes are not supposed to be changed. Because
+		 * of this, the "am33xx_muxmodes" array above will not have any
+		 * values at these indexes. Hence the pad_array &
+		 * am33xx_muxmodes array will be out of sync at these index.
+		 * Handle missing pin-mux entries accordingly by using a special
+		 * array that indicate these offsets.
+		 */
+		off = ((i * 4) + 0x800);
+		for (j = 0; j < ARRAY_SIZE(am335x_pin_mux_addr_to_skip); j++) {
+			if (off == am335x_pin_mux_addr_to_skip[j]) {
+				addr_match = 1;
+				break;
+			}
+		}
+		if (addr_match == 0)
+			mux_arr++;
+	}
+
+	return 0;
+}
+
+/*
+ * Expected input: pinmux_name=<value1>
+ *	pinmux_name = Pin-mux name that is to be setup during suspend with value
+ *		<value1>. Pin-mux name should be in "mode0_name.function_name"
+ *		format. Internally the pin-mux offset is calculated from the
+ *		pin-mux names. Invalid pin-mux names and values are ignored.
+ *		Remember, NO spaces anywhere in the input.
+ *
+ * Example:
+ *	  echo mcasp0_aclkx.gpio3_14=0x27 > suspend_pad_conf
+ *		stores 0x27 as the value to be written to the pinmux (with
+ *		mode0_name.function_name as mcasp0_aclkx.gpio3_14) when entering
+ *		suspend
+ */
+static ssize_t susp_io_pad_write(struct file *file,
+					 const char __user *user_buf,
+					 size_t count, loff_t *ppos)
+{
+	struct seq_file *seqf;
+	u32 *enabled, val;
+	char *export_string, *token, *name;
+
+	seqf = file->private_data;
+	enabled = seqf->private;
+
+	if (!*enabled) {
+		pr_err("%s: IO PAD Configuration is not enabled\n", __func__);
+		return -EINVAL;
+	}
+
+	export_string = kzalloc(count + 1, GFP_KERNEL);
+	if (!export_string)
+		return -ENOMEM;
+
+	if (copy_from_user(export_string, user_buf, count)) {
+		kfree(export_string);
+		return -EFAULT;
+	}
+
+	token = export_string;
+	name = strsep(&token, "=");
+	if (name) {
+		struct omap_mux_partition *partition = NULL;
+		struct omap_mux *mux = NULL;
+		int mux_index, mux_mode;
+		int res;
+
+		mux_mode = omap_mux_get_by_name(name, &partition, &mux);
+		if (mux_mode < 0) {
+			pr_err("%s: Invalid mux name (%s). Ignoring the"
+					" value\n", __func__, name);
+			goto err_out;
+		}
+
+		res = kstrtouint(token, 0, &val);
+		if (res < 0) {
+			pr_err("%s: Invalid value (%s). Ignoring\n",
+						__func__, token);
+			goto err_out;
+		}
+
+		mux_index = (mux->reg_offset -
+			AM33XX_CONTROL_PADCONF_GPMC_AD0_OFFSET) / 4;
+
+		if (mux_index > MAX_IO_PADCONF) {
+			pr_err("%s: Invalid index (0x%x). Ignoring\n",
+						__func__, mux_index);
+			goto err_out;
+		}
+
+		pad_array[mux_index].enabled = true;
+		pad_array[mux_index].val = val;
+	} else {
+		pr_err("%s: Invalid mux name (%s). Ignoring the entry\n",
+						__func__, export_string);
+	}
+
+err_out:
+	*ppos += count;
+	kfree(export_string);
+	return count;
+}
+
+static int susp_io_pad_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, susp_io_pad_status_show, inode->i_private);
+}
+
+static const struct file_operations susp_io_pad_fops = {
+	.open		= susp_io_pad_open,
+	.read		= seq_read,
+	.write		= susp_io_pad_write,
+	.release	= single_release,
+};
+
+static int standby_gpio_status_show(struct seq_file *s, void *unused)
+{
+	struct omap_mux *mux_arr = &am33xx_muxmodes[0];
+
+	int i;
+
+	for (i = 0; i < MAX_IO_PADCONF;) {
+		int off, j, addr_match = 0;
+		char *trigger;
+
+		if (standby_gpio_array[i].enabled) {
+			switch (standby_gpio_array[i].trigger) {
+			case IRQF_TRIGGER_RISING:
+				trigger = "rising";
+				break;
+
+			case IRQF_TRIGGER_FALLING:
+				trigger = "falling";
+				break;
+
+			case IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING:
+			/* fall through */
+			default:
+				trigger = "falling_rising";
+				break;
+			}
+
+			seq_printf(s, "%s.%s (0x%08x = 0x%02x), trigger = %s\n",
+				mux_arr->muxnames[0],
+				mux_arr->muxnames[OMAP_MUX_MODE7],
+				(unsigned int)(AM33XX_CONTROL_PADCONF_MUX_PBASE
+				+ mux_arr->reg_offset),
+				standby_gpio_array[i].pin_val,
+				trigger);
+
+
+		}
+
+		/*
+		 * AM335x pin-mux register offset sequence is broken, meaning
+		 * there is no pin-mux setting at some offset and at some
+		 * offsets, the modes are not supposed to be changed. Because
+		 * of this, the "am33xx_muxmodes" array above will not have any
+		 * values at these indexes. Hence the standby_gpio_array &
+		 * am33xx_muxmodes array will be out of sync at these index.
+		 * Handle missing pin-mux entries accordingly by using a special
+		 * array that indicate these offsets.
+		 */
+
+		i++;
+		off = ((i * 4) + 0x800);
+		for (j = 0; j < ARRAY_SIZE(am335x_pin_mux_addr_to_skip); j++) {
+			if (off == am335x_pin_mux_addr_to_skip[j]) {
+				addr_match = 1;
+				break;
+			}
+		}
+		if (addr_match == 0)
+			mux_arr++;
+	}
+
+	return 0;
+}
+
+/*
+ * Expected input: pinmux_name=<value1>,<trigger>
+ *	pinmux_name = Pin-mux name that is to be setup as gpio during standby
+ *		suspend with gpio interrupt trigger mode as per <trigger> field
+ *		with value <value1>.
+ *		Pin-mux name should be in "mode0_name.mode7_function_name"
+ *		format. Internally the pin-mux offset is calculated from the
+ *		pin-mux names. Invalid pin-mux names and values are ignored.
+ *		Remember,
+ *			- No spaces anywhere in the input.
+ *			- <value1> field is a must
+ *			- <trigger> field is a must and must be one of "rising",
+ *			  "falling"
+ *
+ * Example:
+ *	  echo uart0_rxd.gpio1_10=0x27,rising > standby_gpio_pad_conf
+ *		sets up uart0_rxd.gpio1_10 for gpio mode with interrupt trigger
+ *		as rising and pin-mux value as 0x27 when entering standby mode.
+ */
+static ssize_t standby_gpio_pad_write(struct file *file,
+					 const char __user *user_buf,
+					 size_t count, loff_t *ppos)
+{
+	u32 trigger;
+	char *export_string, *token, *name;
+
+	export_string = kzalloc(count + 1, GFP_KERNEL);
+	if (!export_string)
+		return -ENOMEM;
+
+	if (copy_from_user(export_string, user_buf, count)) {
+		kfree(export_string);
+		return -EFAULT;
+	}
+
+	export_string[count-1] = '\0';   /* force null terminator */
+	token = export_string;
+	name = strsep(&token, "=");
+	if (name) {
+		struct omap_mux_partition *partition = NULL;
+		struct omap_mux *mux = NULL;
+		int mux_index, mux_mode, gpio_bank, gpio_pin, res, pin_val;
+		char *gpio_name;
+
+		mux_mode = omap_mux_get_by_name(name, &partition, &mux);
+		if (mux_mode < 0) {
+			pr_err("%s: Invalid mux name (%s). Ignoring the"
+					" value\n", __func__, name);
+			goto err_out;
+		}
+
+		name = strsep(&token, ",");
+		if (!name) {
+			pr_err("%s: Invalid value (%s). Ignoring\n",
+				__func__, token);
+			goto err_out;
+		}
+
+		res = kstrtouint(name, 0, &pin_val);
+		if (res < 0) {
+			pr_err("%s: Invalid pin mux value (%s). Ignoring\n",
+						__func__, token);
+			goto err_out;
+		}
+
+		if (token && !strncmp("rising", token, 6)) {
+			trigger = IRQF_TRIGGER_RISING;
+		} else if (token && !strncmp("falling", token, 7)) {
+			trigger = IRQF_TRIGGER_FALLING;
+		} else {
+			pr_err("%s: Invalid trigger (%s). Defaulting to"
+					" falling_rising\n", __func__, token);
+			trigger = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING;
+		}
+
+		/* confirm whether a gpio pin exists here */
+		gpio_name = mux->muxnames[OMAP_MUX_MODE7];
+
+		if (!gpio_name) {
+			pr_err("%s: Invalid mux name (%s)\n", __func__, name);
+			goto err_out;
+		} else if (strncmp(gpio_name, "gpio", 4)) {
+			pr_err("%s: Invalid mux name found (%s)\n",
+					__func__, gpio_name);
+			goto err_out;
+		}
+
+		/*
+		 * parse the string name and get the gpio bank & pin number.
+		 * gpio_name will be in the format of "gpioX_Y" where
+		 *	X = bank
+		 *	Y = pin number
+		 */
+		gpio_bank = *(gpio_name + 4) - '0';
+
+		gpio_name += 6;
+		res = kstrtoint(gpio_name, 10, &gpio_pin);
+		if (res < 0) {
+			pr_err("%s: Invalid gpio pin number (%s). Ignoring\n",
+				__func__, gpio_name);
+			goto err_out;
+		}
+
+		mux_index = (mux->reg_offset -
+			AM33XX_CONTROL_PADCONF_GPMC_AD0_OFFSET) / 4;
+
+		if (mux_index > MAX_IO_PADCONF) {
+			pr_err("%s: Invalid index (0x%x). Ignoring\n",
+						__func__, mux_index);
+			goto err_out;
+		}
+
+		standby_gpio_array[mux_index].enabled = true;
+		standby_gpio_array[mux_index].pin_val = pin_val;
+		standby_gpio_array[mux_index].trigger = trigger;
+		standby_gpio_array[mux_index].gpio_pin =
+						((gpio_bank * 32) + gpio_pin);
+	} else {
+		pr_err("%s: Invalid mux name (%s). Ignoring the entry\n",
+						__func__, export_string);
+	}
+
+err_out:
+	*ppos += count;
+	kfree(export_string);
+	return count;
+}
+
+static int standby_gpio_pad_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, standby_gpio_status_show, inode->i_private);
+}
+
+static const struct file_operations standby_gpio_pad_conf_fops = {
+	.open		= standby_gpio_pad_open,
+	.read		= seq_read,
+	.write		= standby_gpio_pad_write,
+	.release	= single_release,
+};
+
+void am33xx_mux_dbg_create_entry(struct dentry *mux_dbg_dir)
+{
+	struct dentry *mux_dbg_suspend_io_conf_dir;
+
+	if (!mux_dbg_dir)
+		return;
+
+	/*
+	 * create a directory by the name suspend_io_pad_conf in
+	 * <debugfs-mount-dir>/<mux_dbg_dir>/
+	 */
+	mux_dbg_suspend_io_conf_dir = debugfs_create_dir("suspend_io_pad_conf",
+								mux_dbg_dir);
+	if (!mux_dbg_suspend_io_conf_dir)
+		return;
+
+	memset(pad_array, 0, sizeof(pad_array));
+
+	(void)debugfs_create_file("enable_suspend_io_pad_conf",
+						S_IRUGO | S_IWUSR,
+						mux_dbg_suspend_io_conf_dir,
+						&susp_io_pad_conf_enabled,
+						&susp_io_pad_enable_fops);
+	(void)debugfs_create_file("suspend_pad_conf", S_IRUGO | S_IWUSR,
+						mux_dbg_suspend_io_conf_dir,
+						&susp_io_pad_conf_enabled,
+						&susp_io_pad_fops);
+	(void)debugfs_create_file("standby_gpio_pad_conf", S_IRUGO | S_IWUSR,
+						mux_dbg_dir,
+						&susp_io_pad_conf_enabled,
+						&standby_gpio_pad_conf_fops);
+}
+
+void am33xx_setup_pinmux_on_suspend(void)
+{
+	u32 reg_off, i;
+
+	if (susp_io_pad_conf_enabled == 1) {
+		reg_off = AM33XX_CONTROL_PADCONF_GPMC_AD0_OFFSET;
+		for (i = 0; i < MAX_IO_PADCONF; reg_off += 4, i++) {
+			if (pad_array[i].enabled)
+				writel(pad_array[i].val,
+						AM33XX_CTRL_REGADDR(reg_off));
+		}
+	}
+}
+
+static u32 am33xx_lp_padconf_complete[MAX_IO_PADCONF];
+
+void am335x_save_padconf(void)
+{
+	struct am33xx_padconf_regs *temp = am33xx_lp_padconf;
+	u32 reg_off;
+	int i;
+	if (susp_io_pad_conf_enabled == 1) {
+		i = AM33XX_CONTROL_PADCONF_GPMC_AD0_OFFSET;
+		reg_off = 0;
+
+		for (; i < AM33XX_CONTROL_PADCONF_MUX_SIZE; i += 4, reg_off++)
+			am33xx_lp_padconf_complete[reg_off] =
+						readl(AM33XX_CTRL_REGADDR(i));
+	} else {
+		for (i = 0; i < ARRAY_SIZE(am33xx_lp_padconf); i++, temp++)
+			temp->val = readl(AM33XX_CTRL_REGADDR(temp->offset));
+	}
+}
+
+void am335x_restore_padconf(void)
+{
+	struct am33xx_padconf_regs *temp = am33xx_lp_padconf;
+	u32 reg_off;
+	int i;
+	if (susp_io_pad_conf_enabled == 1) {
+		i = AM33XX_CONTROL_PADCONF_GPMC_AD0_OFFSET;
+		reg_off = 0;
+		for (; i < AM33XX_CONTROL_PADCONF_MUX_SIZE; i += 4, reg_off++)
+			writel(am33xx_lp_padconf_complete[reg_off],
+							AM33XX_CTRL_REGADDR(i));
+	} else {
+		for (i = 0; i < ARRAY_SIZE(am33xx_lp_padconf); i++, temp++)
+			writel(temp->val, AM33XX_CTRL_REGADDR(temp->offset));
+	}
+}
+
+/*
+ * Dummy GPIO interrupt Handler
+ */
+static irqreturn_t gpio_irq(int irq, void *dev_id)
+{
+	return IRQ_HANDLED;
+}
+
+void am33xx_standby_setup(unsigned int state)
+{
+	u32 reg_off, i;
+
+	if (state != PM_SUSPEND_STANDBY)
+		return;
+
+	writel(0x2, AM33XX_CM_PER_GPIO1_CLKCTRL);
+	writel(0x2, AM33XX_CM_PER_GPIO2_CLKCTRL);
+	writel(0x2, AM33XX_CM_PER_GPIO3_CLKCTRL);
+
+	reg_off = AM33XX_CONTROL_PADCONF_GPMC_AD0_OFFSET;
+	for (i = 0; i < MAX_IO_PADCONF; reg_off += 4, i++) {
+		if (standby_gpio_array[i].enabled) {
+			int ret, reg_val, irq;
+			u32 gpio_pin = standby_gpio_array[i].gpio_pin;
+
+			reg_val = readl(AM33XX_CTRL_REGADDR(reg_off));
+			standby_gpio_array[i].curr_pin_mux = reg_val;
+			reg_val = standby_gpio_array[i].pin_val;
+			writel(reg_val, AM33XX_CTRL_REGADDR(reg_off));
+
+			ret = gpio_request(gpio_pin, "pm_standby");
+			if (ret) {
+				pr_err("%s: Error in gpio request (%d)\n",
+						__func__, ret);
+				continue;
+			}
+			irq = gpio_to_irq(gpio_pin);
+			if (irq < 0) {
+				gpio_free(gpio_pin);
+				pr_err("%s: gpio_to_irq failed (%d)\n",
+								__func__, irq);
+				continue;
+			}
+			ret = request_irq(irq, gpio_irq,
+						standby_gpio_array[i].trigger,
+						"pm_standby", NULL);
+			if (ret) {
+				gpio_free(gpio_pin);
+				pr_err("%s: interrupt request failed (%d)\n",
+								__func__, ret);
+				continue;
+			}
+
+			standby_gpio_array[i].gpio_request_success = true;
+		}
+	}
+
+}
+
+void am33xx_standby_release(unsigned int state)
+{
+	u32 reg_off, i;
+
+	if (state != PM_SUSPEND_STANDBY)
+		return;
+
+	reg_off = AM33XX_CONTROL_PADCONF_GPMC_AD0_OFFSET;
+	for (i = 0; i < MAX_IO_PADCONF; reg_off += 4, i++) {
+		u32 gpio_pin = standby_gpio_array[i].gpio_pin;
+
+		if (standby_gpio_array[i].enabled) {
+			writel(standby_gpio_array[i].curr_pin_mux,
+						AM33XX_CTRL_REGADDR(reg_off));
+
+			if (standby_gpio_array[i].gpio_request_success ==
+									true) {
+				int irq;
+
+				irq = gpio_to_irq(gpio_pin);
+				gpio_free(gpio_pin);
+				free_irq(irq, 0);
+			}
+		}
+	}
+}
+
 #else
 int __init am33xx_mux_init(struct omap_board_mux *board_subset)
 {
 	return 0;
 }
+
+void am335x_save_padconf(void)
+{
+	return;
+}
+
+void am335x_restore_padconf(void)
+{
+	return;
+}
+
 #endif
