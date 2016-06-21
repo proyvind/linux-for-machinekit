@@ -13,13 +13,16 @@
 #include "am335x-bone-common-universal.dtsi"
 #include "am335x-bone-pinmux-can0.dtsi"
 #include "am335x-bone-pinmux-can1.dtsi"
-//#include "am335x-bone-pinmux-spi0.dtsi"
+#include "am335x-bone-pinmux-spi0.dtsi"
 #include "am335x-bone-emmc-in-reset.dtsi"
 #include "am335x-bone-pinmux-panel-1024x600-24bit.dtsi"
 #include "am33xx-overlay-edma-fix.dtsi"
 #include "am33xx-clocks.dtsi"
 #include <dt-bindings/board/am335x-bbw-bbb-base.h>
 #include <dt-bindings/pinctrl/am33xx.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/gpio/gpio.h>
+
 /* #include "am335x-bone-jtag.dtsi" */
 
 / {
@@ -38,7 +41,7 @@
 	/delete-node/ sound;
 	/delete-node/ lcd-led0;
 	/delete-node/ tlv320aic3x;
-	/delete-node/ edt-ft5306@38;
+//	/delete-node/ edt-ft5306@38;
 	/delete-node/ mcasp0_pins;
 //	/delete-node/ spi0
 //	/delete-node/ spi1;
@@ -157,7 +160,7 @@
 			BONE_P9_42B (PIN_OUTPUT_PULLDOWN | MUX_MODE7)	// mcasp0_aclkr.gpio3_18
 		>;
 	};
-	ft5x06_ts_pins: pinmux_ft5x06_ts_pins {
+	edt_ft5306_ts_pins: pinmux_edt_ft5306_ts_pins {
 		pinctrl-single,pins = <
 			BONE_P9_27 (PIN_INPUT_PULLDOWN | MUX_MODE7)	/* mcasp0_fsr.gpio3_19 */
 			BONE_P9_16 (PIN_OUTPUT_PULLUP | MUX_MODE7)	/* mcasp0_axr1.gpio3_20 */
@@ -343,6 +346,12 @@
 	P9_16_pinmux {
 		status = "disabled";
 	};
+	P9_17_pinmux {
+		status = "disabled";
+	};
+	P9_18_pinmux {
+		status = "disabled";
+	};
 	P9_19_pinmux {
 		status = "disabled";
 	};
@@ -361,6 +370,9 @@
 	P9_26_pinmux {
 		status = "disabled";
 	};
+	P9_27_pinmux {
+		status = "disabled";
+	};
 	P9_28_pinmux {
 		status = "disabled";
 	};
@@ -374,6 +386,9 @@
 		status = "disabled";
 	};
 	P9_42_pinmux {
+		status = "disabled";
+	};
+	P9_91_pinmux {
 		status = "disabled";
 	};
 	P9_92_pinmux {
@@ -433,6 +448,26 @@
 
 };
 
+/*
+&spi1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&bb_spi1_pins>;
+	compatible = "ti,omap4-mcspi";
+
+	channel@0 {
+		compatible = "spidev";
+		spi-max-frequency = <16000000>;
+		reg = <0>;
+		spi-cpha;
+	};
+
+	channel@1 {
+		compatible = "spidev";
+		spi-max-frequency = <16000000>;
+		reg = <1>;
+	};
+};
+*/
 &spi0 {
 	compatible = "spi-gpio";
 	pinctrl-names = "default";
@@ -499,12 +534,16 @@
 			reg = <0 0x100>;
 		};
 	};
+/*
 	tps65217_pwr_button: tps65217_pwr_button@24 {
 		pinctrl-names = "default";
 		pinctrl-0 = <&pwr_button_pins>;
 		compatible = "ti,tps65217_pwr_but";
 		interrupt-parent = <&tps>;
+		#address-cells = <1>;
+		#size-cells = <1>;
 	};
+*/
 };
 
 
@@ -513,30 +552,102 @@ status = "disabled";
 };
 
 &i2c2 {
-        ft5x06_ts: ft5x06_ts@38 {
+        edt_ft5306: edt-ft5306@38 {
 		status = "okay";
-                compatible = "ft5x06_ts";
+		compatible = "edt,edt-ft5306", "edt,edt-ft5x06";
 		pinctrl-names = "default";
-		pinctrl-0 = <&ft5x06_ts_pins>;
+		pinctrl-0 = <&edt_ft5306_ts_pins>;
 
                 reg = <0x38>;
                 interrupt-parent = <&gpio3>;
-                interrupts = <19 20>;
+                interrupts = <19 IRQ_TYPE_EDGE_FALLING>;
+
+		reset-gpios = <&gpio3 20 GPIO_ACTIVE_LOW>;
+		wake-gpios = <&gpio3 21 GPIO_ACTIVE_LOW>;
 
 		touchscreen-size-x = <1024>;
 		touchscreen-size-y = <600>;
 
         };
 
-	pca9685_pwm: pca9685-pwm@7f {
-		compatible = "pca9685-pwm";
+	pca9685_pwm: pca@7f {
+		compatible = "nxp,pca9685-pwm";
+		#pwm-cells = <2>;
 		reg = <0x7f>;
 	};
+
+	cape_eeprom0: cape_eeprom0@54 {
+		compatible = "at,24c256";
+		reg = <0x54>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		cape0_data: cape_data@0 {
+			reg = <0 0x100>;
+		};
+	};
+
+	cape_eeprom1: cape_eeprom1@55 {
+		compatible = "at,24c256";
+		reg = <0x55>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		cape1_data: cape_data@0 {
+			reg = <0 0x100>;
+		};
+	};
+
+	cape_eeprom2: cape_eeprom2@56 {
+		compatible = "at,24c256";
+		reg = <0x56>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		cape2_data: cape_data@0 {
+			reg = <0 0x100>;
+		};
+	};
+
+	cape_eeprom3: cape_eeprom3@57 {
+		compatible = "at,24c256";
+		reg = <0x57>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		cape3_data: cape_data@0 {
+			reg = <0 0x100>;
+		};
+	};
+
+	ads1015: ads1015@48 {
+		 compatible = "ti,ads1015";
+		 status = "okay";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		 reg = <0x49>;
+		 channel@1 {
+			 reg = <4>;
+			 ti,gain = <2>;
+			 ti,datarate = <4>;
+		 };
+		 channel@2 {
+			 reg = <5>;
+			 ti,gain = <2>;
+			 ti,datarate = <4>;
+		 };
+		 channel@3 {
+			 reg = <6>;
+			 ti,gain = <2>;
+			 ti,datarate = <4>;
+		 };
+		 channel@4 {
+			 reg = <7>;
+			 ti,gain = <2>;
+			 ti,datarate = <4>;
+		 };
+	 };
 };
 
 
 &wkup_m3 {
-	ti,pm-firmware = "am335x-pm-firmware.bin";
+	ti,pm-firmware = "am335x-pm-firmware.elf";
 };
 
 &ecap0 {
@@ -637,9 +748,9 @@ status = "disabled";
 	bone_capemgr {
 		compatible = "ti,bone-capemgr";
 		status = "okay";
-		nvmem-cells = <&baseboard_data>;
-		nvmem-cell-names = "baseboard";
-		#slots = <0>;
+		nvmem-cells = <&baseboard_data &cape0_data &cape1_data &cape2_data &cape3_data>;
+		nvmem-cell-names = "baseboard", "slot0", "slot1", "slot2", "slot3";
+		#slots = <4>;
 
 		/* map board revisions to compatible definitions */
 		baseboardmaps {
