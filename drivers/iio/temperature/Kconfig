@@ -3,6 +3,17 @@
 #
 menu "Temperature sensors"
 
+config MAX6675
+	tristate "MAX6675 thermocouple converter"
+	depends on SPI
+	help
+	  If you say yes here you get support for the Maxim
+	  MAX6675 thermocouple converter connected with SPI.
+
+	  This driver can also be built as a module. If so, the module will
+	  be called max6675.
+
+
 config MLX90614
 	tristate "MLX90614 contact-less infrared sensor"
 	depends on I2C
