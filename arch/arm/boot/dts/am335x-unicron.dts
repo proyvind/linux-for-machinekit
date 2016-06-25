@@ -1,40 +1,40 @@
 /*
- * Copyright (C) 2012 Texas Instruments Incorporated - http://www.ti.com/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- */
+ Copyright (C) 2012 Texas Instruments Incorporated - http://www.ti.com/
+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License version 2 as
+ published by the Free Software Foundation.
+*/
 /dts-v1/;
 
 #include "am33xx.dtsi"
 #include "am335x-bone-common-no-capemgr.dtsi"
-#include "am335x-bone-pinmux-i2c2.dtsi"
+#include "am335x-peripheral-i2c2.dtsi"
 #include "am335x-bone-common-universal.dtsi"
 #include "am335x-bone-pinmux-can0.dtsi"
 #include "am335x-bone-pinmux-can1.dtsi"
-#include "am335x-bone-pinmux-spi0.dtsi"
-#include "am335x-bone-emmc-in-reset.dtsi"
-#include "am335x-bone-pinmux-panel-1024x600-24bit.dtsi"
+//#include "am335x-bone-pinmux-spi0.dtsi"
+//#include "am335x-bone-emmc-in-reset.dtsi"
+//#include "am335x-bone-pinmux-panel-1024x600-24bit.dtsi"
 #include "am33xx-overlay-edma-fix.dtsi"
 #include "am33xx-clocks.dtsi"
 #include <dt-bindings/board/am335x-bbw-bbb-base.h>
 #include <dt-bindings/pinctrl/am33xx.h>
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/linux-event-codes.h>
 
 /* #include "am335x-bone-jtag.dtsi" */
 
 / {
 	model = "TI AM335x BBP";
-	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx", "ti,unicron";
+	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx", "ti,beaglebone", "ti,beaglebone-black", "ti,unicron";
 
 	memory {
 		device_type = "memory";
 		reg = <0x80000000 0x20000000>; /* 512 MB */
 	};
 
-	/delete-node/ leds;
 	/delete-node/ keymap3_pins;
 	/delete-node/ i2c1_pins;
 	/delete-node/ gpio_keys;
@@ -62,53 +62,56 @@
 };
 
 &am33xx_pinmux {
-	bb_spi0_pins: pinmux_bb_spi0_pins {
+/*
+	P9_22_spi_pin: pinmux_P9_22_spi_pin {
 		pinctrl-single,pins = <
-			BONE_P9_22 (PIN_INPUT_PULLDOWN | MUX_MODE0) 	/* (A17) spi0_sclk.spi0_sclk */
-			BONE_P9_21 (PIN_INPUT_PULLUP | MUX_MODE0)	/* (B17) spi0_d0.spi0_d0 */
-			BONE_P9_18 (PIN_INPUT_PULLDOWN | MUX_MODE0)	/* (B16) spi0_d1.spi0_d1 */
-			BONE_P9_17 (PIN_INPUT_PULLUP | MUX_MODE0)	/* (A16) spi0_cs0.spi0_cs0 */
-			>;
-		      };
+			BONE_P9_22 (PIN_INPUT_PULLDOWN | MUX_MODE0) 	// (A17) spi0_sclk.spi0_sclk
+		>;
+	};
+	P9_21_spi_pin: pinmux_P9_21_spi_pin {
+		pinctrl-single,pins = <
+			BONE_P9_21 (PIN_INPUT_PULLUP | MUX_MODE0)	// (B17) spi0_d0.spi0_d0
+		>;
+	};
+	P9_18_spi_pin: pinmux_P9_18_spi_pin {
+		pinctrl-single,pins = <
+			BONE_P9_18 (PIN_INPUT_PULLDOWN | MUX_MODE0)	// (B16) spi0_d1.spi0_d1
+		>;
+	};
+	P9_17_spi_pin: pinmux_P9_17_spi_pin {
+		pinctrl-single,pins = <
+			BONE_P9_17 (PIN_INPUT_PULLUP | MUX_MODE0)	// (A16) spi0_cs0.spi0_cs0
+		>;
+	};
+*/
+/*
 	bb_spi1_pins: pinmux_bb_spi1_pins {
 		pinctrl-single,pins = <
-			/* P9_31: mcasp0_aclkx.spi1_sclk */
-			BONE_P9_31 (PIN_OUTPUT_PULLDOWN | MUX_MODE3)
-			/* P9_29: mcasp0_fsx.spi1_d0 */
-			BONE_P9_29 (PIN_INPUT_PULLDOWN | MUX_MODE3)
-			/* P9_30: mcasp0_axr0.spi1_d1 */
-			BONE_P9_30 (PIN_OUTPUT_PULLDOWN | MUX_MODE3)
-			/* P9_28: mcasp0_ahclkr.spi1_cs0 */
-			BONE_P9_28 (PIN_OUTPUT_PULLUP | MUX_MODE3)
-			/* P9_19: uart1_rtsn.spi1_cs1 */
-			//BONE_P9_19 (PIN_OUTPUT_PULLDOWN | MUX_MODE4)
+			BONE_P9_31 (PIN_OUTPUT_PULLDOWN | MUX_MODE3) // P9_31: mcasp0_aclkx.spi1_sclk
+			BONE_P9_29 (PIN_INPUT_PULLDOWN | MUX_MODE3) // P9_29: mcasp0_fsx.spi1_d0
+			BONE_P9_30 (PIN_OUTPUT_PULLDOWN | MUX_MODE3) // P9_30: mcasp0_axr0.spi1_d1
+			BONE_P9_28 (PIN_OUTPUT_PULLUP | MUX_MODE3) // P9_28: mcasp0_ahclkr.spi1_cs0
+			//BONE_P9_19 (PIN_OUTPUT_PULLDOWN | MUX_MODE4) // P9_19: uart1_rtsn.spi1_cs1
 			>;
 		      };
-
-	ecap0_pins_default: backlight_pins {
+*/
+/*	ecap0_default_pins: pinmux_ecap0_default_pins {
 		pinctrl-single,pins = <
-			BONE_P9_42A 0x0       /* eCAP0_in_PWM0_out.eCAP0_in_PWM0_out MODE0 */
+			BONE_P9_42A (PIN_OUTPUT_PULLDOWN | MUX_MODE0)       // eCAP0_in_PWM0_out.eCAP0_in_PWM0_out MODE0
 		>;
 	};
-
-	ecap0_pins_sleep: ecap0_pins_sleep {
-		pinctrl-single,pins = <
-			BONE_P9_42A  (PULL_DISABLE | MUX_MODE7)       /* eCAP0_in_PWM0_out.eCAP0_in_PWM0_out */
-		>;
-	};
-	dcan0_default: dcan0_default_pins {
-		pinctrl-single,pins = <
-			BONE_P9_20 0x0a      /* uart1_ctsn.dcan0_tx_mux2, OUTPUT | MODE2 */
-			BONE_P9_19 0x2a      /* uart1_rtsn.dcan0_rx_mux2, INPUT | MODE2 */
-		>;
-	};
-
-	ehrpwm0_pins: pinmux_ehrpwm0_pins {
+*/
+/*	ehrpwm0_pins: pinmux_ehrpwm0_pins {
+	//P9_22_pwm_pin: pinmux_P9_22_pwm_pin {
 		pinctrl-single,pins = <
 			BONE_P9_22 (PIN_OUTPUT_PULLDOWN | MUX_MODE3)	// spi0_sclk.ehrpwm0A
-			BONE_P9_21 (PIN_OUTPUT_PULLDOWN | MUX_MODE3)	// spi0_d0.ehrpwm0B
 		>;
 	};
+	P9_21_pwm_pin: pinmux_P9_21_pwm_pin {
+		pinctrl-single,pins = <
+			BONE_P9_21 (PIN_OUTPUT_PULLDOWN | MUX_MODE3)	// spi0_d0.ehrpwm0B
+		>;
+	};*/
 /* BBP ONLY
 	ehrpwm1a_pins: pinmux_ehrpwm1a_pins {
 		pinctrl-single,pins = <
@@ -117,12 +120,13 @@
 	};
 */
 
-	ehrpwm1b_pins: pinmux_ehrpwm1b_pins {
+//	ehrpwm1b_pins: pinmux_ehrpwm1b_pins {
+/*	P9_16_pwm_pin: pinmux_P9_16_pwm_pin {
 		pinctrl-single,pins = <
-			AM33XX_IOPAD(0x84c, PIN_OUTPUT_PULLDOWN | MUX_MODE6)     // gpmc_a3.ehrpwm1b
+			BONE_P9_16 (PIN_OUTPUT_PULLDOWN | MUX_MODE6)     // gpmc_a3.ehrpwm1b
 		>;
 	};
-/*
+
 	gpio_leds_pins: pinmux_gpio_leds_pins {
 		pinctrl-single,pins = <
 			0x198 (PIN_OUTPUT_PULLDOWN | MUX_MODE7)			// mcasp0_aclkr.gpio3_18
@@ -149,34 +153,29 @@
 		>;
 	};
 
+/*
 	bb_lcd_pwm_backlight_pins: pinmux_bb_lcd_pwm_backlight_pins {
 		pinctrl-single,pins = <
-			0x1b0 (PIN_OUTPUT_PULLUP | MUX_MODE7)	/* xdma_event_intr0.gpio0_19 */
-			BONE_P9_41B (PIN_OUTPUT_PULLUP | MUX_MODE7)	/* mcasp0_axr1.gpio3_21 */
+			0x1b0 (PIN_OUTPUT_PULLUP | MUX_MODE7)	// xdma_event_intr0.gpio0_19
 		>;
 	};
-	user_leds_s1: user_leds_s1 {
+*/
+/*	user_leds_default: user_leds_default {
 	      pinctrl-single,pins = <
 			BONE_P9_42B (PIN_OUTPUT_PULLDOWN | MUX_MODE7)	// mcasp0_aclkr.gpio3_18
 		>;
 	};
-	edt_ft5306_ts_pins: pinmux_edt_ft5306_ts_pins {
-		pinctrl-single,pins = <
-			BONE_P9_27 (PIN_INPUT_PULLDOWN | MUX_MODE7)	/* mcasp0_fsr.gpio3_19 */
-			BONE_P9_16 (PIN_OUTPUT_PULLUP | MUX_MODE7)	/* mcasp0_axr1.gpio3_20 */
+	user_leds_sleep: user_leds_sleep {
+	      pinctrl-single,pins = <
+			BONE_P9_42B (PIN_INPUT_PULLDOWN | MUX_MODE7)	// mcasp0_aclkr.gpio3_18
 		>;
 	};
-	lmsw_pins: pinmux_lmsw_pins {
-		pinctrl-single,pins = <
-			BONE_P8_18 (PIN_INPUT_PULLUP | MUX_MODE7)	/* gpmc_clk.gpio2_1 */
-			BONE_P9_23 (PIN_INPUT_PULLUP | MUX_MODE7)	/* gpmc_a1.gpio1_17 */ 
-			BONE_P9_13 (PIN_INPUT_PULLUP | MUX_MODE7)	/* gpmc_wpn.gpio0_31 */
-			BONE_P9_11 (PIN_INPUT_PULLUP | MUX_MODE7)	/* gpmc_wait0.gpio0_30 */
-			BONE_P8_26 (PIN_INPUT_PULLUP | MUX_MODE7)	/* gpmc_csn0.gpio1_29 */
-			BONE_P9_12 (PIN_INPUT_PULLUP | MUX_MODE7)	/* uart1_txd.gpio0_15*/ 
-
+*/
+	//edt_ft5306_ts_pins: pinmux_edt_ft5306_ts_pins
+	P9_91_gpio_pd_pin: pinmux_P9_91_gpio_pd_pin {
+	      pinctrl-single,pins = <
+			BONE_P9_41B (PIN_OUTPUT_PULLUP | MUX_MODE7)	// mcasp0_axr1.gpio3_20
 		>;
-
 	};
 	drv8825_stepper_pins: pinmux_drv8825_stepper_pins {
 		pinctrl-single,pins = <
@@ -200,6 +199,19 @@
 		>;
 	};
 
+/*
+	lmsw_pins: pinmux_lmsw_pins {
+		pinctrl-single,pins = <
+			BONE_P8_18 (PIN_INPUT_PULLUP | MUX_MODE7)	// gpmc_clk.gpio2_1
+			BONE_P9_23 (PIN_INPUT_PULLUP | MUX_MODE7)	// gpmc_a1.gpio1_17
+			BONE_P9_13 (PIN_INPUT_PULLUP | MUX_MODE7)	// gpmc_wpn.gpio0_31
+			BONE_P9_11 (PIN_INPUT_PULLUP | MUX_MODE7)	// gpmc_wait0.gpio0_30
+			BONE_P8_26 (PIN_INPUT_PULLUP | MUX_MODE7)	// gpmc_csn0.gpio1_29
+			BONE_P9_24 (PIN_INPUT_PULLUP | MUX_MODE7)	// uart1_txd.gpio0_15
+		>;
+
+	};
+*/
 };
 
 &tps {
@@ -253,6 +265,7 @@
 };
 
 &ocp {
+
 	P8_11_pinmux {
 		status = "disabled";
 	};
@@ -274,8 +287,15 @@
 	P8_17_pinmux {
 		status = "disabled";
 	};
+	P8_18_pinmux {
+		status = "disabled";
+		//mode = "gpio_pu";
+	};
 	P8_19_pinmux {
 		status = "disabled";
+	};
+	P8_26_pinmux {
+		mode = "gpio_pu";
 	};
 	P8_27_pinmux {
 		status = "disabled";
@@ -338,40 +358,60 @@
 		status = "disabled";
 	};
 	P9_11_pinmux {
-		status = "disabled";
+		mode = "gpio_pu";
 	};
 	P9_13_pinmux {
 		status = "disabled";
+		//mode = "gpio_pu";
+	};
+	P9_14_pinmux {
+		status = "disabled";
 	};
 	P9_16_pinmux {
+	//	mode = "pwm";
 		status = "disabled";
 	};
 	P9_17_pinmux {
 		status = "disabled";
+		//mode = "spi";
 	};
 	P9_18_pinmux {
 		status = "disabled";
+		//mode = "spi";
 	};
 	P9_19_pinmux {
 		status = "disabled";
+		//mode = "i2c";
 	};
 	P9_20_pinmux {
-		status = "disabled";
+		status = "disabled";//disabled
+		//mode = "i2c";
 	};
 	P9_21_pinmux {
 		status = "disabled";
+		//mode = "pwm";
 	};
 	P9_22_pinmux {
 		status = "disabled";
+		//mode = "pwm";
+	};
+	P9_23_pinmux {
+		mode = "gpio_pu";
 	};
 	P9_24_pinmux {
+	status = "disabled";
+//		mode = "gpio_pu";
+	};
+	P9_25_pinmux {
 		status = "disabled";
+		//mode = "gpio_pu";
 	};
 	P9_26_pinmux {
 		status = "disabled";
 	};
 	P9_27_pinmux {
 		status = "disabled";
+		//mode = "gpio_pd";
 	};
 	P9_28_pinmux {
 		status = "disabled";
@@ -389,21 +429,49 @@
 		status = "disabled";
 	};
 	P9_91_pinmux {
+		//mode = "gpio_pd";
 		status = "disabled";
 	};
 	P9_92_pinmux {
 		status = "disabled";
+//		mode = "gpio_pd";
 	};
+
+	cape-universal {
+		/delete-node/ P8_18;
+		/delete-node/ P9_11;
+		/delete-node/ P9_14;
+		/delete-node/ P9_15;
+
+		/delete-node/ P9_16;
+		/delete-node/ P9_17;
+		/delete-node/ P9_18;
+		/delete-node/ P9_19;
+		/delete-node/ P9_20;
+		/delete-node/ P9_21;
+		/delete-node/ P9_22;
+		/delete-node/ P9_23;
+		/delete-node/ P9_24;
+		/delete-node/ P9_25;
+		/delete-node/ P9_26;
+		/delete-node/ P9_27;
+		/delete-node/ P9_91;
+		/delete-node/ P9_92;
+	};
+
+
+
+
+/*
 	epwmss0: epwmss@48300000 {
 		status = "okay";
 		ecap0: ecap@48300100 {
-			status = "okay";
-			pinctrl-names = "default", "sleep";
-			pinctrl-0 = <&ecap0_pins_default>;
-			pinctrl-1 = <&ecap0_pins_sleep>;
+			status = "disabled";
+			pinctrl-names = "default";
+			pinctrl-0 = <&ecap0_default_pins>;
 		};
 	};
-
+*/
 	musb: usb@47400000 {
 	      status = "okay";
 
@@ -433,11 +501,73 @@
 		      status = "okay";
 	      };
 	};
+
+};
+&lcdc {
+	compatible = "ti,am3352-lcdc", "ti,da830-lcdc";
+	status = "okay";
+
+	display-timings {
+		1024x600 {
+			clock-frequency = <51200000>;
+			hactive = <1024>;
+			vactive = <600>;
+			hfront-porch = <160>;
+			hback-porch = <140>;
+			hsync-len = <20>;
+			vback-porch = <22>;
+			vfront-porch = <12>;
+			vsync-len = <3>;
+			hsync-active = <1>;
+			vsync-active  = <1>;
+			de-active = <1>;
+			pixelclk-active = <0>;
+		};
+	};
+};
+
+/*
 	lmsw: lmsw@0 {
 		status = "okay";
 		pinctrl-names = "default";
-		pinctrl-0 = <&lmsw_pins>;
-		compatible = "lmsw", "lmsw_min_x", "lmsw_min_y", "lmsw_min_y", "lmsw_max_x", "lmsw_max_y", "lmsw_max_z";
+		pinctrl-0 = <>;//&lmsw_pins>;
+		compatible = "platform:lmsw", "lmsw", "lmsw_min_x", "lmsw_min_y", "lmsw_min_y", "lmsw_max_x", "lmsw_max_y", "lmsw_max_z";
+		min_x: lmsw_min_x@0 {
+			gpios = <&gpio2 1 GPIO_ACTIVE_HIGH>;
+			level = <0>;
+			value = <KEY_F1>;
+			lmsw-name = "lmsw_min_x";
+		};
+		min_y: lmsw_min_y@1 {
+			gpios = <&gpio1 17 GPIO_ACTIVE_HIGH>;
+			level = <0>;
+			value = <KEY_F2>;
+			lmsw-name = "lmsw_min_y";
+		};
+		min_z: lmsw_min_z@2 {
+			gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
+			level = <0>;
+			value = <KEY_F3>;
+			lmsw-name = "lmsw_min_z";
+		};
+		max_x: lmsw_max_x@3 {
+			gpios = <&gpio0 30 GPIO_ACTIVE_HIGH>;
+			level = <0>;
+			value = <KEY_F4>;
+			lmsw-name = "lmsw_max_x";
+		};
+		max_y: lmsw_max_y@4 {
+			gpios = <&gpio1 29 GPIO_ACTIVE_HIGH>;
+			level = <0>;
+			value = <KEY_F5>;
+			lmsw-name = "lmsw_max_y";
+		};
+		max_z: lmsw_max_z@5 {
+			gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;
+			level = <0>;
+			value = <KEY_F6>;
+			lmsw-name = "lmsw_max_z";
+		};
 	};
 
 	onewire {
@@ -445,33 +575,12 @@
 		gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
 		status = "okay";
 	};
-
-};
-
-/*
-&spi1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&bb_spi1_pins>;
-	compatible = "ti,omap4-mcspi";
-
-	channel@0 {
-		compatible = "spidev";
-		spi-max-frequency = <16000000>;
-		reg = <0>;
-		spi-cpha;
-	};
-
-	channel@1 {
-		compatible = "spidev";
-		spi-max-frequency = <16000000>;
-		reg = <1>;
-	};
-};
 */
+/*
 &spi0 {
 	compatible = "spi-gpio";
 	pinctrl-names = "default";
-	pinctrl-0 = <&bb_spi0_pins>;
+	pinctrl-0 = <>;//&bb_spi0_pins>;
 	status = "okay";
 	num-chipselects = <1>;
 	ti,spi-num-cs = <1>;
@@ -490,7 +599,7 @@
 &spi1 {
 	compatible = "spi-gpio";
 	pinctrl-names = "default";
-	pinctrl-0 = <&bb_spi1_pins>;
+	pinctrl-0 = <;
 	status = "okay";
 	num-chipselects = <2>;
 
@@ -512,10 +621,10 @@
 		spi-max-frequency = <2000000>;
 	};
 };
-
+*/
 &i2c0 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&i2c0_pins>;
+	pinctrl-0 = <>;//&i2c0_pins>;
 
 	status = "okay";
 	clock-frequency = <400000>;
@@ -552,11 +661,15 @@ status = "disabled";
 };
 
 &i2c2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <>;//&i2c2_pins>;
+
+/*
         edt_ft5306: edt-ft5306@38 {
 		status = "okay";
-		compatible = "edt,edt-ft5306", "edt,edt-ft5x06";
+		compatible = "edt,edt-ft5336", "edt,edt-ft5306", "edt,edt-ft5x06";
 		pinctrl-names = "default";
-		pinctrl-0 = <&edt_ft5306_ts_pins>;
+		pinctrl-0 = <>;//&edt_ft5306_ts_pins>;
 
                 reg = <0x38>;
                 interrupt-parent = <&gpio3>;
@@ -567,55 +680,15 @@ status = "disabled";
 
 		touchscreen-size-x = <1024>;
 		touchscreen-size-y = <600>;
-
+		touchscreen-swapped-x-y;
         };
-
-	pca9685_pwm: pca@7f {
+*/
+/*	pca9685_pwm: pca@7f {
+		status = "okay";
 		compatible = "nxp,pca9685-pwm";
 		#pwm-cells = <2>;
 		reg = <0x7f>;
 	};
-
-	cape_eeprom0: cape_eeprom0@54 {
-		compatible = "at,24c256";
-		reg = <0x54>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		cape0_data: cape_data@0 {
-			reg = <0 0x100>;
-		};
-	};
-
-	cape_eeprom1: cape_eeprom1@55 {
-		compatible = "at,24c256";
-		reg = <0x55>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		cape1_data: cape_data@0 {
-			reg = <0 0x100>;
-		};
-	};
-
-	cape_eeprom2: cape_eeprom2@56 {
-		compatible = "at,24c256";
-		reg = <0x56>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		cape2_data: cape_data@0 {
-			reg = <0 0x100>;
-		};
-	};
-
-	cape_eeprom3: cape_eeprom3@57 {
-		compatible = "at,24c256";
-		reg = <0x57>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		cape3_data: cape_data@0 {
-			reg = <0 0x100>;
-		};
-	};
-
 	ads1015: ads1015@48 {
 		 compatible = "ti,ads1015";
 		 status = "okay";
@@ -643,6 +716,7 @@ status = "disabled";
 			 ti,datarate = <4>;
 		 };
 	 };
+*/
 };
 
 
@@ -650,25 +724,15 @@ status = "disabled";
 	ti,pm-firmware = "am335x-pm-firmware.elf";
 };
 
-&ecap0 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&ecap0_pins_default>;
-};
-
-&epwmss0 {
-	status = "okay";
-};
-
 &epwmss1 {
 	status = "okay";
 };
 
-
+/*
 &ehrpwm0 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&ehrpwm0_pins>;
+	pinctrl-0 = <>;//&ehrpwm0_pins>;
 };
 
 &ehrpwm1 {
@@ -689,10 +753,8 @@ status = "disabled";
 	vsync-active = <1>;
 	de-active = <1>;
 	pixelclk-active = <0>;
-
-
 };
-
+*/
 &usb0 {
 	dr_mode = "otg";
 	status = "okay";
@@ -725,12 +787,7 @@ status = "disabled";
 	status = "disabled";
 };
 
-&dcan0 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&dcan0_default>;
-	status = "okay";
-};
-
+/*
 &tscadc {
 	status = "okay";
 	tsc {
@@ -744,45 +801,56 @@ status = "disabled";
 		ti,adc-channels = <0 1 2 3>;
 	};
 };
+*/
 / {
 	bone_capemgr {
-		compatible = "ti,bone-capemgr";
-		status = "okay";
-		nvmem-cells = <&baseboard_data &cape0_data &cape1_data &cape2_data &cape3_data>;
-		nvmem-cell-names = "baseboard", "slot0", "slot1", "slot2", "slot3";
-		#slots = <4>;
+               compatible = "ti,bone-capemgr";
+               status = "okay";
+
+               nvmem-cells = <&baseboard_data>;
+               nvmem-cell-names = "baseboard";
+               #slots = <0>;
 
 		/* map board revisions to compatible definitions */
 		baseboardmaps {
 			baseboard_unicron: board@0 {
 				board-name = "BBP1S";
-				compatible-name = "ti,unicron";
+				compatible-name = "ti,beaglebone-black";
+				revision = "0A5A";
 			};
 		};
 	};
+/*
 	backlight {
 		status = "okay";
 		pinctrl-names = "default";
 		pinctrl-0 = <&bb_lcd_pwm_backlight_pins>;
 		compatible = "pwm-backlight";
-		pwms = <&ehrpwm1 1 4096>;
+		pwms = <&ehrpwm1 1 500000>;
 		brightness-levels = <0 10 20 30 40 50 60 70 80 90 100>;
 		default-brightness-level = <10>;
 	};
+*/
+/*	leds {
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&user_leds_default>;
+		pinctrl-1 = <&user_leds_sleep>;
 
-	gpio-leds-cape-lcd {
 		compatible = "gpio-leds";
-		pinctrl-names = "default";
 
-		pinctrl-0 = <&user_leds_s1>;
-
-		led1 {
-			label = "usr1";
+		led@1 {
+			label = "unicron:blue:usr1";
 			gpios = <&gpio3 18 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "mmc0";
-			default-state = "on";
+			linux,default-trigger = "default-on";
+			default-state = "off";
 		};
-	};
+		/delete-node/ led@2;
+		/delete-node/ led@3;
+		/delete-node/ led@4;
+		/delete-node/ led@5;
+	};*/
+
+/*
 	panel {
 		panel-info {
 			ac-bias           = <255>;
@@ -799,5 +867,5 @@ status = "disabled";
 			native-mode = <&timing0>;
 		};
 	};
-
+*/
 };
