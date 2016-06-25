@@ -1,0 +1,19 @@
+Maxim MAX6675 thermocouple converter
+
+Required properties:
+
+	- compatible: must be "maxim,max6675"
+	- reg: SPI chip select number for the device
+	- spi-max-frequency: must be 4300000
+	- spi-cpha: SPI Mode 1.
+
+	Refer to spi/spi-bus.txt for generic SPI slave bindings
+
+Example:
+
+	max6675@0 {
+		compatible = "maxim,max6675";
+		reg = <0>;
+		spi-max-frequency = <4300000>;
+		spi-cpha;
+	};
