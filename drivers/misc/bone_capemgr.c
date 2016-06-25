@@ -1850,6 +1850,7 @@ static int capemgr_remove(struct platform_device *pdev)
 		capemgr_remove_slot_no_lock(slot);
 	mutex_unlock(&info->slots_list_mutex);
 
+	sysfs_remove_groups(&pdev->dev.kobj, pdev->dev.groups);
 	platform_set_drvdata(pdev, NULL);
 
 	ret = pm_runtime_get_sync(&pdev->dev);
