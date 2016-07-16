@@ -59,7 +59,6 @@ static int max6675_read_raw(struct iio_dev *indio_dev,
 	int ret;
 
 	if (m == IIO_CHAN_INFO_RAW) {
-		*val2 = 0;
 		ret = max6675_read(st, val);
 		if (ret)
 			return ret;
@@ -81,7 +80,7 @@ static int max6675_probe(struct spi_device *spi)
 {
 	struct iio_dev *indio_dev;
 	struct max6675_state *st;
-	int ret = 0;
+	int ret;
 
 	indio_dev = devm_iio_device_alloc(&spi->dev, sizeof(*st));
 	if (!indio_dev)
@@ -102,20 +101,11 @@ static int max6675_probe(struct spi_device *spi)
 	indio_dev->modes = INDIO_DIRECT_MODE;
 	indio_dev->info = &max6675_info;
 
-	ret = iio_device_register(indio_dev);
+	ret = devm_iio_device_register(&spi->dev, indio_dev);
 	if (ret < 0)
 		dev_err(&spi->dev, "unable to register device\n");
 
 	return ret;
-}
-
-static int max6675_remove(struct spi_device *spi)
-{
-	struct iio_dev *indio_dev = spi_get_drvdata(spi);
-
-	iio_device_unregister(indio_dev);
-
-	return 0;
 }
 
 static const struct acpi_device_id max6675_acpi_ids[] = {
@@ -144,7 +134,6 @@ static struct spi_driver max6675_driver = {
 		.of_match_table = of_match_ptr(max6675_dt_ids),
 	},
 	.probe		= max6675_probe,
-	.remove		= max6675_remove,
 	.id_table	= max6675_spi_ids,
 };
 module_spi_driver(max6675_driver);
