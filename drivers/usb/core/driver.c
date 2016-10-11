@@ -643,6 +643,7 @@ int usb_match_device(struct usb_device *dev, const struct usb_device_id *id)
 
 	return 1;
 }
+EXPORT_SYMBOL_GPL(usb_match_device);
 
 /* returns 0 if no match, 1 if match */
 int usb_match_one_id_intf(struct usb_device *dev,
@@ -1891,3 +1892,5 @@ struct bus_type usb_bus_type = {
 	.match =	usb_device_match,
 	.uevent =	usb_uevent,
 };
+EXPORT_SYMBOL_GPL(usb_match_device)
+
