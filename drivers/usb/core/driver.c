@@ -1892,5 +1892,4 @@ struct bus_type usb_bus_type = {
 	.match =	usb_device_match,
 	.uevent =	usb_uevent,
 };
-EXPORT_SYMBOL_GPL(usb_match_device)
-
+EXPORT_SYMBOL_GPL(usb_bus_type);
