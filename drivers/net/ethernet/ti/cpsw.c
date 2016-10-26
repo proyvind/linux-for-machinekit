@@ -35,7 +35,7 @@
 #include <linux/of_net.h>
 #include <linux/of_device.h>
 #include <linux/if_vlan.h>
-#include <linux/net_switch_config.h>
+#include <uapi/linux/net_switch_config.h>
 
 #include <linux/pinctrl/consumer.h>
 
