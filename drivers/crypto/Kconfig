@@ -502,4 +502,18 @@ config CRYPTO_DEV_SUN4I_SS
 	  To compile this driver as a module, choose M here: the module
 	  will be called sun4i-ss.
 
+config CRYPTO_DEV_ATSHA204
+	tristate "Support for Atmel's ATSHA204 secure authentication & validation device"
+	depends on ARCH_OMAP2PLUS
+	select CRYPTO_HMAC
+	select CRYPTO_AES128
+	select CRYPTO_SHA256
+	select CRYPTO_AES
+	help
+	  ATSHA204 provides hardware acceleration for SHA256, ATECC108 and
+	  ATAES132 hash algorithms. Select this if you
+	  want to use the atsha204 module for SHA256, ATECC108 or ATAES132
+	  hash algorithms or AES128 cipher.
+
+
 endif # CRYPTO_HW
